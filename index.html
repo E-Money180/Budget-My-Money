@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#102b38">
+  <title>Budget My Money</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+</head>
+<body>
+  <div id="auth" class="auth-wrap">
+    <div class="auth-card">
+      <div class="brand-mark">B<span>•</span></div>
+      <p class="eyebrow">YOUR MONEY. YOUR PLAN.</p>
+      <h1>Budget My Money</h1>
+      <p class="muted">A clearer picture of every dollar.</p>
+      <div class="tabs"><button class="tab active" data-auth="login">Sign in</button><button class="tab" data-auth="signup">Create account</button></div>
+      <form id="auth-form">
+        <label>Email<input id="email" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters"></label>
+        <button class="primary full" id="auth-submit">Sign in</button>
+      </form>
+      <p class="small muted">Your account is private. Never enter your bank password here.</p>
+      <p id="auth-message" class="message"></p>
+    </div>
+  </div>
+
+  <div id="app" class="app-shell hidden">
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark small">B<span>•</span></span><div><b>Budget My Money</b><small>PERSONAL FINANCE</small></div></div>
+      <nav>
+        <button class="nav-item active" data-view="dashboard">▦ <span>Overview</span></button>
+        <button class="nav-item" data-view="bills">▤ <span>Bills</span></button>
+        <button class="nav-item" data-view="transactions">⇄ <span>Transactions</span></button>
+        <button class="nav-item" data-view="income">＋ <span>Income</span></button>
+        <button class="nav-item" data-view="savings">◎ <span>Savings goals</span></button>
+        <button class="nav-item" data-view="banks">▣ <span>Bank connections</span></button>
+      </nav>
+      <div class="sidebar-bottom"><div class="sync-state"><i></i><span>Cloud sync enabled</span></div><button id="signout" class="ghost">Sign out</button></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar"><div><p class="eyebrow" id="today-label">YOUR FINANCIAL SNAPSHOT</p><h2 id="page-title">Overview</h2></div><div class="user-pill" id="user-email"></div></header>
+      <section id="view-dashboard" class="view">
+        <div class="hero-grid">
+          <article class="safe-card">
+            <div class="card-head"><span>SAFE TO SPEND</span><span class="live-dot">● LIVE CALCULATION</span></div>
+            <div class="safe-amount" id="safe-monthly">$0.00</div><p class="safe-sub">Monthly safe-to-spend balance</p>
+            <div class="safe-divider"></div>
+            <div class="safe-stats"><div><small>Next payday</small><b id="next-payday">Set income schedule</b></div><div><small>Paycheck safe to spend</small><b id="safe-paycheck">$0.00</b></div></div>
+            <p class="safe-note">After upcoming bills, planned everyday spending and savings reserves.</p>
+          </article>
+          <article class="balance-card panel">
+            <div class="card-head"><span>MONTHLY SNAPSHOT</span><span class="muted">This month</span></div>
+            <div class="metric-row"><div><small>Income</small><b id="income-total">$0.00</b></div><div><small>Bills</small><b id="bills-total">$0.00</b></div></div>
+            <div class="metric-row"><div><small>Expenses logged</small><b id="expenses-total">$0.00</b></div><div><small>Savings goal</small><b id="savings-total">$0.00</b></div></div>
+            <div class="progress-label"><span>Monthly budget used</span><b id="budget-percent">0%</b></div><div class="progress"><i id="budget-progress"></i></div>
+          </article>
+        </div>
+        <div class="section-row"><h3>Safe to Spend methods</h3><span class="muted small">Both views use your saved data</span></div>
+        <div class="two-grid">
+          <article class="panel method-card"><div class="method-icon">↻</div><h3>Paycheck to paycheck</h3><p class="muted">What is safe until your next payday?</p><div class="method-value" id="paycheck-safe-card">$0.00</div><small id="paycheck-explain">Add an income schedule to calculate this view.</small></article>
+          <article class="panel method-card"><div class="method-icon">▦</div><h3>Monthly budget</h3><p class="muted">What remains for the rest of this month?</p><div class="method-value" id="monthly-safe-card">$0.00</div><small>Monthly income less bills, everyday budgets and savings.</small></article>
+        </div>
+        <div class="section-row"><h3>Everyday spending plan</h3><button class="text-button" data-go="transactions">Add expense ↗</button></div>
+        <div class="panel category-grid" id="everyday-summary"></div>
+        <div class="section-row"><h3>Upcoming bills</h3><button class="text-button" data-go="bills">See all ↗</button></div>
+        <div class="panel table-wrap"><table><thead><tr><th>Bill</th><th>Due date</th><th>Amount</th><th>Status</th></tr></thead><tbody id="upcoming-table"><tr><td colspan="4" class="empty">No bills added yet.</td></tr></tbody></table></div>
+      </section>
+
+      <section id="view-bills" class="view hidden">
+        <div class="section-row"><div><h3>Your bills</h3><p class="muted">Track due dates and recurring payments.</p></div><button class="primary" id="add-bill-open">＋ Add bill</button></div>
+        <div class="panel table-wrap"><table><thead><tr><th>Bill</th><th>Category</th><th>Due</th><th>Frequency</th><th>Amount</th><th></th></tr></thead><tbody id="bills-table"></tbody></table></div>
+      </section>
+
+      <section id="view-transactions" class="view hidden">
+        <div class="section-row"><div><h3>Transactions</h3><p class="muted">Record everyday purchases and expenses.</p></div><button class="primary" id="add-transaction-open">＋ Add transaction</button></div>
+        <div class="panel table-wrap"><table><thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Type</th><th>Amount</th><th></th></tr></thead><tbody id="transactions-table"></tbody></table></div>
+      </section>
+
+      <section id="view-income" class="view hidden">
+        <div class="section-row"><div><h3>Income</h3><p class="muted">Add paychecks and other income sources.</p></div><button class="primary" id="add-income-open">＋ Add income</button></div>
+        <div class="panel table-wrap"><table><thead><tr><th>Source</th><th>Pay schedule</th><th>Next payday</th><th>Take-home amount</th><th></th></tr></thead><tbody id="income-table"></tbody></table></div>
+      </section>
+
+      <section id="view-savings" class="view hidden">
+        <div class="section-row"><div><h3>Savings goals</h3><p class="muted">Give every savings dollar a purpose.</p></div><button class="primary" id="add-goal-open">＋ Add goal</button></div>
+        <div class="goal-grid" id="goals-grid"></div>
+      </section>
+
+      <section id="view-banks" class="view hidden">
+        <div class="section-row"><div><h3>Bank connections</h3><p class="muted">Securely connect accounts through Plaid or keep entering transactions manually.</p></div><button class="primary" id="connect-bank">＋ Connect bank</button></div>
+        <div class="panel bank-info"><div class="bank-icon">▣</div><div><b>Bank-level security</b><p class="muted">Your bank credentials are entered directly with the financial institution through Plaid Link. This app does not ask for or store your bank password.</p></div></div>
+        <div class="panel"><h3>Connected accounts</h3><div id="bank-list" class="empty">No bank accounts connected.</div></div>
+        <p class="small muted">Bank linking requires a configured Plaid account and deployed server functions. See SETUP.md.</p>
+      </section>
+      <footer>Budget My Money · Your financial data belongs to you.</footer>
+    </main>
+  </div>
+
+  <dialog id="record-dialog">
+    <form id="record-form" method="dialog">
+      <div class="dialog-head"><h3 id="dialog-title">Add record</h3><button type="button" class="icon-button" id="dialog-close">×</button></div>
+      <div id="dialog-fields" class="form-grid"></div>
+      <p id="dialog-error" class="message"></p>
+      <div class="dialog-actions"><button type="button" class="secondary" id="dialog-cancel">Cancel</button><button class="primary" id="dialog-save">Save</button></div>
+    </form>
+  </dialog>
+  <div id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
