@@ -1,7 +1,7 @@
 /* Budget My Money - Supabase-backed PWA.
    Configure SUPABASE_URL and SUPABASE_ANON_KEY before use. */
-const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = "https://bdrjwmkegxcyicgujesb.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "sb_publishable_txlklLg5PURA10L37XzMKA_RythylvJ";
 const $ = (id) => document.getElementById(id);
 const configured = SUPABASE_URL.startsWith("https://") && !SUPABASE_ANON_KEY.includes("YOUR_");
 let db = null, user = null, authMode = "login", currentType = null;
